@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html>
+ <head>
+   <meta charset="utf-8">
+   <title>Saludo</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <style>
+     body {
+       font-family: sans-serif
+     }
+   </style>
+   <script src="/__/firebase/6.0.2/firebase-app.js"></script>
+   <script src="/__/firebase/6.0.2/firebase-functions.js"></script>
+   <script src="/__/firebase/init.js"></script>
+ </head>
+ <body>
+   <h1>Saludo</h1>
+   <form name="vista">
+     <p>
+       <input type="text" name="nombre1" required placeholder="Nombre 1"
+         accesskey="1">
+     </p>
+     <p>
+       <input type="text" name="nombre2" required placeholder="Nombre 2"
+         accesskey="2">
+     </p>
+     <p><output name="respuesta"></output></p>
+     <p>
+       <button type="submit">Saluda (Hilos)</button>
+       <button type="button" name="saludaHttp">Saluda (Http)</button>
+     </p>
+   </form>
+   <script>
+     "use strict";
+     const hilo = new Worker("wwSaludo.js");
+     document.vista.addEventListener("submit", saludaHilo);
+     document.vista.saludaHttp.addEventListener("click", saludaHttp);
+     hilo.addEventListener("message", evt => muestraRespuesta(evt.data));
+     function muestraRespuesta(respuesta) {
+       document.vista.respuesta.value = respuesta;
+     }
+     function saludaHilo(evt) {
+       evt.preventDefault();
+       const modelo = leeModelo();
+       hilo.postMessage(modelo);
+     }
+     async function saludaHttp() {
+       try {
+         const modelo = leeModelo();
+         const respuestaHttp = await fetch(
+           "saludo?nombre1=" + encodeURIComponent(modelo.nombre1)
+           + "&nombre2=" + encodeURIComponent(modelo.nombre2));
+         if (respuestaHttp.ok) {
+           const respuestaTexto = await respuestaHttp.text();
+           muestraRespuesta(respuestaTexto);
+         } else {
+           throw new Error(respuestaHttp.statusText);
+         }
+       } catch (e) {
+         muestraRespuesta(e.message);
+       }
+     }
+     function leeModelo() {
+       return {
+         nombre1: document.vista.nombre1.value.trim(),
+         nombre2: document.vista.nombre2.value.trim()
+       };
+     }
+   </script>
+ </body>
+</html>
